@@ -4,4 +4,24 @@ services:
     container_name: firstserverapi
     ports:
       - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/firstserverdb
+      SPRING_DATASOURCE_USERNAME: firstserveruser
+      SPRING_DATASOURCE_PASSWORD: change_me_later
+    depends_on:
+      - postgres
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    container_name: firstserver-postgres
+    environment:
+      POSTGRES_DB: firstserverdb
+      POSTGRES_USER: firstserveruser
+      POSTGRES_PASSWORD: change_me_later
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
