@@ -1,4 +1,4 @@
-package com.edentech.firstserverapi.auth;
+package com.edentech.firstserverapi.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
