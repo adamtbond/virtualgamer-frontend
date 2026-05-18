@@ -22,5 +22,6 @@ jobs:
           script: |
             cd /opt/FirstServerAPI
             git pull
+            chmod +x mvnw
             ./mvnw clean package -DskipTests
             docker compose up -d --build
