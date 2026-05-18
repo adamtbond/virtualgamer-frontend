@@ -5,9 +5,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/firstserverdb
-      SPRING_DATASOURCE_USERNAME: firstserveruser
-      SPRING_DATASOURCE_PASSWORD: change_me_later
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       - postgres
     restart: unless-stopped
@@ -16,9 +16,9 @@ services:
     image: postgres:16
     container_name: firstserver-postgres
     environment:
-      POSTGRES_DB: firstserverdb
-      POSTGRES_USER: firstserveruser
-      POSTGRES_PASSWORD: change_me_later
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
