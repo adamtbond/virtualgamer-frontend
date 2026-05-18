@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.*;
         private AppUserRepository userRepository;
 
         @Autowired
+        private JwtService jwtService;
+
+        @Autowired
         private PasswordEncoder passwordEncoder;
 
         @PostMapping("/register")
@@ -32,6 +35,21 @@ import org.springframework.web.bind.annotation.*;
             userRepository.save(user);
 
             return "User registered";
+        }
+
+        @PostMapping("/login")
+        public AuthResponse login(@RequestBody AuthRequest request) {
+
+            AppUser user = userRepository.findByUsername(request.getUsername())
+                    .orElseThrow(() -> new RuntimeException("Invalid username or password"));
+
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                throw new RuntimeException("Invalid username or password");
+            }
+
+            String token = jwtService.generateToken(user.getUsername());
+
+            return new AuthResponse(token);
         }
 
     }
