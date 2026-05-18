@@ -17,7 +17,7 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: 77.68.122.45
-          username: root
+          username: deploy
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/FirstServerAPI
