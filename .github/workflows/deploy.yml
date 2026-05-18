@@ -1,0 +1,26 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy backend on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 77.68.122.45
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/FirstServerAPI
+            git pull
+            ./mvnw clean package -DskipTests
+            docker compose up -d --build
