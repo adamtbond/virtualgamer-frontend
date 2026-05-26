@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Deploy backend on VPS
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@master
         with:
           host: 77.68.122.45
           username: deploy
