@@ -21,7 +21,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/FirstServerAPI
-            git pull
+            git fetch origin
+            git reset --hard origin/master
+            git clean -fd
             chmod +x mvnw
             ./mvnw clean package -DskipTests
             docker compose up -d --build
