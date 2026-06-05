@@ -24,9 +24,11 @@ jobs:
         run: |
           ssh deploy@77.68.122.45 << 'EOF'
             cd /opt/FirstServerAPI
+            docker compose down --remove-orphans || true
             git fetch origin
             git reset --hard origin/master
-            git clean -fd
+            git clean -ffdx
             chmod +x mvnw
-            ./mvnw clean package -DskipTests
+            ./mvnw package -DskipTests
             docker compose up -d --build
+          EOF
