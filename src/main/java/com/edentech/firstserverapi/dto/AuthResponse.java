@@ -1,4 +1,4 @@
-package com.edentech.firstserverapi.auth;
+package com.edentech.firstserverapi.dto;
 
 public class AuthResponse {
     private String token;

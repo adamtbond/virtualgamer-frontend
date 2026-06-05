@@ -1,11 +1,11 @@
 package com.edentech.firstserverapi.repository;
 
-import com.edentech.firstserverapi.model.AppUser;
+import com.edentech.firstserverapi.entity.AppUserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface AppUserRepository extends JpaRepository<AppUser, Long> {
+public interface AppUserRepository extends JpaRepository<AppUserEntity, Long> {
 
-    Optional<AppUser> findByUsername(String username);
+    Optional<AppUserEntity> findByUsername(String username);
 }

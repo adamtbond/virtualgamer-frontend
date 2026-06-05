@@ -1,4 +1,4 @@
-package com.edentech.firstserverapi.auth;
+package com.edentech.firstserverapi.dto;
 
 public class AuthRequest {
     private String username;

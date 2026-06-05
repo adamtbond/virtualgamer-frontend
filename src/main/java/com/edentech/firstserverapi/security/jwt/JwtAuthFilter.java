@@ -1,5 +1,6 @@
-package com.edentech.firstserverapi.auth;
+package com.edentech.firstserverapi.security.jwt;
 
+import com.edentech.firstserverapi.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

@@ -1,7 +1,13 @@
 package com.edentech.firstserverapi.repository;
 
-import com.edentech.firstserverapi.model.Note;
+import com.edentech.firstserverapi.entity.NoteEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface NoteRepository extends JpaRepository<Note, Long> {
+import java.util.List;
+import java.util.Optional;
+
+public interface NoteRepository extends JpaRepository<NoteEntity, Long> {
+    List<NoteEntity> findByUserId(Long userId);
+    
+    Optional<NoteEntity> findByIdAndUserId(Long id, Long userId);
 }

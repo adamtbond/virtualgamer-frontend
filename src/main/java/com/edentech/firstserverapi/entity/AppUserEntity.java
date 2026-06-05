@@ -1,10 +1,10 @@
-package com.edentech.firstserverapi.model;
+package com.edentech.firstserverapi.entity;
 
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
-public class AppUser {
+public class AppUserEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,10 +15,10 @@ public class AppUser {
 
     private String password;
 
-    public AppUser() {
+    public AppUserEntity() {
     }
 
-    public AppUser(String username, String password) {
+    public AppUserEntity(String username, String password) {
         this.username = username;
         this.password = password;
     }

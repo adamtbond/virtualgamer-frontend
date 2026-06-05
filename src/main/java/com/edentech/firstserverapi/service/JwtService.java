@@ -1,4 +1,4 @@
-package com.edentech.firstserverapi.auth;
+package com.edentech.firstserverapi.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

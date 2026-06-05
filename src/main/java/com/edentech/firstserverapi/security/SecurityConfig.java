@@ -1,6 +1,6 @@
-package com.edentech.firstserverapi.config;
+package com.edentech.firstserverapi.security;
 
-import com.edentech.firstserverapi.auth.JwtAuthFilter;
+import com.edentech.firstserverapi.security.jwt.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
