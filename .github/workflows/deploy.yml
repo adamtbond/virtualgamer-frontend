@@ -23,12 +23,26 @@ jobs:
       - name: Deploy backend on VPS
         run: |
           ssh deploy@77.68.122.45 << 'EOF'
+            set -euo pipefail
+
             cd /opt/FirstServerAPI
-            docker compose down --remove-orphans || true
+
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
             git fetch origin
             git reset --hard origin/master
-            git clean -ffdx
+            git clean -ffdx -e .env
+
+            if [ ! -f .env ]; then
+              echo "Missing /opt/FirstServerAPI/.env. Create it from .env.example before deploying."
+              exit 1
+            fi
+
             chmod +x mvnw
             ./mvnw package -DskipTests
-            docker compose up -d --build
+
+            docker builder prune -af || true
+            docker compose build --no-cache api
+            docker compose up -d --remove-orphans
           EOF
