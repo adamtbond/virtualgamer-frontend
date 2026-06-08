@@ -30,6 +30,7 @@ jobs:
             mkdir -p ~/.ssh
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
+            git remote set-url origin https://github.com/adamtbond/FirstServerAPI.git
             git fetch origin
             git reset --hard origin/master
             git clean -ffdx -e .env
