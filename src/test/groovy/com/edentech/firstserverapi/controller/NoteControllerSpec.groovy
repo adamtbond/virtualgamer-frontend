@@ -6,7 +6,9 @@ import com.edentech.firstserverapi.entity.NoteEntity
 import com.edentech.firstserverapi.repository.AppUserRepository
 import com.edentech.firstserverapi.repository.NoteRepository
 import com.edentech.firstserverapi.service.JwtService
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
+import org.springframework.web.server.ResponseStatusException
 import spock.lang.Specification
 
 class NoteControllerSpec extends Specification {
@@ -109,8 +111,9 @@ class NoteControllerSpec extends Specification {
             noteController.getNoteById(999L, authentication)
 
         then:
-            RuntimeException ex = thrown()
-            ex.message == "Note not found or does not belong to user"
+            ResponseStatusException ex = thrown()
+            ex.statusCode == HttpStatus.NOT_FOUND
+            ex.reason == "Note not found or does not belong to user"
     }
 
     def "should update note successfully"() {
@@ -147,8 +150,9 @@ class NoteControllerSpec extends Specification {
             noteController.updateNote(noteId, updateDTO, authentication)
 
         then:
-            RuntimeException ex = thrown()
-            ex.message == "Note not found or does not belong to user"
+            ResponseStatusException ex = thrown()
+            ex.statusCode == HttpStatus.NOT_FOUND
+            ex.reason == "Note not found or does not belong to user"
     }
 
     def "should delete note by id"() {

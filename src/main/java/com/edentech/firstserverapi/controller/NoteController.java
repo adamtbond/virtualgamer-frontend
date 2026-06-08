@@ -8,7 +8,9 @@ import com.edentech.firstserverapi.repository.NoteRepository;
 import com.edentech.firstserverapi.repository.AppUserRepository;
 import com.edentech.firstserverapi.service.JwtService;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,9 +34,7 @@ public class NoteController {
      */
     @GetMapping
     public List<NoteDTO> getNotes(Authentication authentication) {
-        String username = authentication.getPrincipal().toString();
-        AppUserEntity user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        AppUserEntity user = getAuthenticatedUser(authentication);
         
         return noteRepository.findByUserId(user.getId())
                 .stream()
@@ -47,9 +47,7 @@ public class NoteController {
      */
     @PostMapping
     public NoteDTO createNote(@RequestBody NoteDTO noteDTO, Authentication authentication) {
-        String username = authentication.getPrincipal().toString();
-        AppUserEntity user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        AppUserEntity user = getAuthenticatedUser(authentication);
         
         NoteEntity note = new NoteEntity(noteDTO.getText(), user);
         NoteEntity saved = noteRepository.save(note);
@@ -61,13 +59,11 @@ public class NoteController {
      */
     @GetMapping("/{id}")
     public NoteDTO getNoteById(@PathVariable Long id, Authentication authentication) {
-        String username = authentication.getPrincipal().toString();
-        AppUserEntity user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        AppUserEntity user = getAuthenticatedUser(authentication);
         
         return noteRepository.findByIdAndUserId(id, user.getId())
                 .map(NoteMapper::toDTO)
-                .orElseThrow(() -> new RuntimeException("Note not found or does not belong to user"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found or does not belong to user"));
     }
 
     /**
@@ -75,12 +71,10 @@ public class NoteController {
      */
     @PutMapping("/{id}")
     public NoteDTO updateNote(@PathVariable Long id, @RequestBody NoteDTO noteDTO, Authentication authentication) {
-        String username = authentication.getPrincipal().toString();
-        AppUserEntity user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        AppUserEntity user = getAuthenticatedUser(authentication);
         
         NoteEntity note = noteRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Note not found or does not belong to user"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found or does not belong to user"));
         
         note.setText(noteDTO.getText());
         NoteEntity updated = noteRepository.save(note);
@@ -91,14 +85,23 @@ public class NoteController {
      * Delete a note (only if user owns it)
      */
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteNote(@PathVariable Long id, Authentication authentication) {
-        String username = authentication.getPrincipal().toString();
-        AppUserEntity user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        AppUserEntity user = getAuthenticatedUser(authentication);
         
         NoteEntity note = noteRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new RuntimeException("Note not found or does not belong to user"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found or does not belong to user"));
         
         noteRepository.delete(note);
+    }
+
+    private AppUserEntity getAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+
+        String username = authentication.getPrincipal().toString();
+        return appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
     }
 }

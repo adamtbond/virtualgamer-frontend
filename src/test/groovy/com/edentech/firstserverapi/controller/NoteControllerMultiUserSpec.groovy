@@ -7,7 +7,9 @@ import com.edentech.firstserverapi.mapper.NoteMapper
 import com.edentech.firstserverapi.repository.NoteRepository
 import com.edentech.firstserverapi.repository.AppUserRepository
 import com.edentech.firstserverapi.service.JwtService
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
+import org.springframework.web.server.ResponseStatusException
 import spock.lang.Specification
 
 class NoteControllerMultiUserSpec extends Specification {
@@ -131,8 +133,9 @@ class NoteControllerMultiUserSpec extends Specification {
             noteController.getNoteById(99L, authentication)
 
         then:
-            RuntimeException ex = thrown()
-            ex.message.contains("Note not found") || ex.message.contains("does not belong to user")
+            ResponseStatusException ex = thrown()
+            ex.statusCode == HttpStatus.NOT_FOUND
+            ex.reason == "Note not found or does not belong to user"
     }
 
     def "should update note only if user owns it"() {
@@ -177,8 +180,9 @@ class NoteControllerMultiUserSpec extends Specification {
             noteController.updateNote(99L, updateDTO, authentication)
 
         then:
-            RuntimeException ex = thrown()
-            ex.message.contains("Note not found") || ex.message.contains("does not belong to user")
+            ResponseStatusException ex = thrown()
+            ex.statusCode == HttpStatus.NOT_FOUND
+            ex.reason == "Note not found or does not belong to user"
     }
 
     def "should delete note only if user owns it"() {
@@ -213,8 +217,9 @@ class NoteControllerMultiUserSpec extends Specification {
             noteController.deleteNote(99L, authentication)
 
         then:
-            RuntimeException ex = thrown()
-            ex.message.contains("Note not found") || ex.message.contains("does not belong to user")
+            ResponseStatusException ex = thrown()
+            ex.statusCode == HttpStatus.NOT_FOUND
+            ex.reason == "Note not found or does not belong to user"
     }
 
     def "should throw exception if authenticated user not found in database"() {
@@ -226,8 +231,9 @@ class NoteControllerMultiUserSpec extends Specification {
             noteController.getNotes(authentication)
 
         then:
-            RuntimeException ex = thrown()
-            ex.message == "User not found"
+            ResponseStatusException ex = thrown()
+            ex.statusCode == HttpStatus.UNAUTHORIZED
+            ex.reason == "User not found"
     }
 
     def "different users should only see their own notes"() {
