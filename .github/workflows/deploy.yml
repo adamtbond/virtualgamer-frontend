@@ -11,6 +11,8 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Setup SSH key
@@ -30,9 +32,8 @@ jobs:
             mkdir -p ~/.ssh
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
-            git remote set-url origin https://github.com/adamtbond/FirstServerAPI.git
-            git fetch origin
-            git reset --hard origin/master
+            git -c http.extraHeader="Authorization: Bearer ${{ github.token }}" fetch https://github.com/adamtbond/FirstServerAPI.git master
+            git reset --hard FETCH_HEAD
             git clean -ffdx -e .env
 
             if [ ! -f .env ]; then
