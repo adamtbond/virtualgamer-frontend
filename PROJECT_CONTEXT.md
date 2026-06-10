@@ -27,7 +27,28 @@
 
 ---
 
-## ARCHITECTURAL STANDARDS (Added June 2026)
+## Current Product Direction
+
+The next major product goal is to build WhatsApp-style messaging into Virtual Gamer.
+
+The messaging system should eventually support:
+
+* One-to-one direct chats
+* Group chats with many members
+* Users being members of many chats
+* Users creating group chats
+* Inviting users to group chats
+* Accepting/declining invitations
+* Users leaving groups
+* Group membership roles such as OWNER, ADMIN and MEMBER
+* Message history stored in PostgreSQL
+* Later real-time messaging using WebSockets/STOMP after REST and persistence are correct
+
+The intended design is a unified chat-room model rather than separate direct-message and group-message systems.
+
+---
+
+## Architectural Standards
 
 ### Development Methodology
 
@@ -44,14 +65,16 @@ New features should follow this workflow whenever practical.
 Controllers must remain thin.
 
 Controllers should:
-- Validate requests
-- Delegate business logic to services
-- Return DTOs
+
+* Validate requests
+* Delegate business logic to services
+* Return DTOs
 
 Controllers should not:
-- Contain business logic
-- Access repositories directly
-- Return JPA entities
+
+* Contain business logic
+* Access repositories directly
+* Return JPA entities
 
 ### DTO Standards
 
@@ -68,7 +91,7 @@ Controller
 
 DTOs should be used for all API boundaries.
 
-Java Records are preferred for DTOs where appropriate.
+Java records are preferred for DTOs where appropriate, but normal DTO classes are acceptable where validation, builders or framework requirements make them more useful.
 
 ### Service Standards
 
@@ -81,54 +104,520 @@ Repositories are persistence-only components.
 Lombok is approved for reducing boilerplate.
 
 Preferred usage:
-- @Getter
-- @Setter
-- @Builder
-- @NoArgsConstructor
-- @AllArgsConstructor
+
+* @Getter
+* @Setter
+* @Builder
+* @NoArgsConstructor
+* @AllArgsConstructor
 
 Avoid @Data on JPA entities.
 
 ### Testing Standards
 
 Feature work should include:
-- Service tests
-- Repository tests
-- Controller tests
-- Mapper tests
+
+* Service tests
+* Repository tests
+* Controller tests
+* Mapper tests
 
 Spock remains the primary testing framework.
 
 ### Decision Log
 
 June 2026:
-- Adopt TDD-first development workflow.
-- Controllers return DTOs only.
-- Use mapper layer between entities and DTOs.
-- Adopt Lombok to reduce boilerplate.
-- Continue Spring Boot, JPA, Security and Spock as primary framework stack.
 
-### Planned Chat System Architecture
-
-Messaging will use a unified chat model.
-
-Core entities:
-- ChatRoomEntity
-- ChatMemberEntity
-- ChatMessageEntity
-- ChatInviteEntity
-
-Chat types:
-- DIRECT
-- GROUP
-
-Single architecture supports:
-- One-to-one messaging
-- Group chats
-- Invitations
-- Membership management
-- Future WebSocket real-time messaging
+* Adopt TDD-first development workflow.
+* Controllers return DTOs only.
+* Use mapper layer between entities and DTOs.
+* Adopt Lombok to reduce boilerplate.
+* Continue Spring Boot, JPA, Security and Spock as primary framework stack.
+* Use a unified chat-room architecture for both direct and group messaging.
 
 ---
 
-(Existing project context retained below)
+## Chat System Architecture
+
+### Planned Core Domain
+
+Core entities:
+
+* ChatRoomEntity
+* ChatMemberEntity
+* ChatMessageEntity
+* ChatInviteEntity
+
+Core enums:
+
+* ChatRoomType: DIRECT, GROUP
+* ChatMemberRole: OWNER, ADMIN, MEMBER
+* ChatMemberStatus: ACTIVE, LEFT, REMOVED
+* ChatInviteStatus: PENDING, ACCEPTED, DECLINED, CANCELLED
+
+### Current Chat Implementation Status - June 10, 2026
+
+Initial chat foundation has been implemented using TDD.
+
+Completed so far:
+
+* Added Lombok support and Maven annotation processor configuration.
+* Created chat package structure.
+* Created initial chat enums.
+* Created ChatRoomEntity.
+* Created ChatMemberEntity.
+* Created ChatRoomRepository.
+* Created ChatMemberRepository.
+* Created ChatRoomDTO as a Java record.
+* Created ChatRoomMapper.
+* Created ChatService.
+* Created ChatServiceSpec.
+* Implemented first TDD slice: creating a group chat creates a GROUP chat room and makes the creator an OWNER/ACTIVE member.
+* Existing tests still pass after the chat foundation work.
+
+Important implementation detail:
+
+* AppUserEntity is in package `com.edentech.firstserverapi.entity.AppUserEntity`.
+
+Next recommended chat slice:
+
+* Add request DTO: CreateGroupChatRequest.
+* Add ChatController endpoint: POST /chats/groups.
+* Write controller test first.
+* Ensure controller returns ChatRoomDTO, never ChatRoomEntity.
+* After group creation endpoint works, add list-my-chats endpoint.
+
+Do not deploy chat yet. The domain foundation exists, but database migration strategy, controllers and user-facing API endpoints are not complete.
+
+---
+
+## Backend Status
+
+### Authentication
+
+Working:
+
+POST /auth/register
+POST /auth/login
+
+Passwords:
+
+* Stored hashed using BCrypt
+
+Login:
+
+* Returns JWT token
+
+JWT:
+
+* Generated by JwtService
+* Validated by JwtAuthFilter
+
+### Security
+
+SecurityConfig protects:
+
+/auth/** -> permitAll
+/notes/** -> authenticated
+
+JWT filter runs before UsernamePasswordAuthenticationFilter.
+
+### Notes API
+
+Working:
+
+GET /notes
+POST /notes
+
+Requires:
+
+Authorization: Bearer <token>
+
+---
+
+## CORS
+
+Working.
+
+SecurityConfig includes:
+
+* corsConfigurationSource()
+* OPTIONS requests permitted
+* Allowed origins:
+
+    * http://localhost:5173
+    * https://virtualgamer.co.uk
+    * https://www.virtualgamer.co.uk
+
+PowerShell OPTIONS test now returns:
+
+HTTP 200
+Access-Control-Allow-Origin present
+
+---
+
+## Frontend Status
+
+### Login
+
+Working.
+
+User can:
+
+* Register
+* Login
+
+JWT token stored in:
+
+localStorage
+
+### Notes
+
+Frontend sends:
+
+Authorization: Bearer <token>
+
+Notes endpoint now works.
+
+---
+
+## CI/CD
+
+### Frontend
+
+Working.
+
+GitHub Actions deploys built React files to VPS.
+
+### Backend
+
+History:
+
+* Multiple failures caused by stale VPS repo state.
+* mvnw permission issues.
+* Dirty working tree.
+* Java version mismatch.
+
+Current recommendation:
+
+Deployment script:
+
+cd /opt/FirstServerAPI
+git fetch origin
+git reset --hard origin/master
+git clean -fd
+chmod +x mvnw
+./mvnw clean package -DskipTests
+docker compose up -d --build
+
+This prevents stale code issues.
+
+---
+
+## Recent Problems Solved
+
+### 404 on /auth/register
+
+Cause:
+
+* Controller not deployed.
+
+Fix:
+
+* Force pull and rebuild.
+
+### 401 on register/login
+
+Cause:
+
+* SecurityConfig blocking endpoint.
+
+Fix:
+
+* permitAll for /auth/**
+
+### JWT login returning 404
+
+Cause:
+
+* Login code not deployed.
+
+Fix:
+
+* Pull latest code and rebuild.
+
+### Notes still public
+
+Cause:
+
+* JWT filter/security changes not deployed.
+
+Fix:
+
+* Redeploy.
+
+### CORS failures
+
+Cause:
+
+* OPTIONS preflight blocked.
+
+Fix:
+
+* Global Spring Security CORS configuration.
+
+### Java build failure
+
+Cause:
+
+* Project changed to Java 25 while VPS was Java 21.
+
+Fix:
+
+* Upgrade VPS to Java 25.
+* Dockerfile changed to eclipse-temurin:25-jdk.
+
+---
+
+## Testing & Quality Assurance
+
+### Test Suite Implementation ✅ COMPLETED
+
+**20 Groovy Spock Test Classes with 170+ Test Cases**
+
+Files: `src/test/groovy/com/edentech/firstserverapi/`
+
+**Test Coverage by Layer:**
+
+1. Service Tests (1 class, 7 cases)
+   - JwtServiceSpec: Token generation, validation, extraction
+
+2. Controller Tests (4 classes, 31 cases)
+   - AuthControllerSpec: Register, login, JWT generation
+   - HelloControllerSpec: Hello endpoint
+   - NoteControllerSpec: Original CRUD tests
+   - NoteControllerMultiUserSpec: NEW - User-owned notes (11 cases)
+
+3. DTO Tests (5 classes, 40+ cases)
+   - AuthRequestSpec, AuthResponseSpec, AuthRegisterResponseSpec
+   - NoteDTOSpec, AppUserDTOSpec
+   - All include null safety and edge case tests
+
+4. Entity Tests (2 classes, 20+ cases)
+   - AppUserEntitySpec: User entity operations
+   - NoteEntitySpec: Note entity operations
+
+5. Mapper Tests (2 classes, 16+ cases)
+   - AppUserMapperSpec: Entity-to-DTO with password security
+   - NoteMapperSpec: Bidirectional conversions with user context
+
+6. Security Tests (2 classes, 17+ cases)
+   - SecurityConfigSpec: Password encoding, BCrypt validation
+   - JwtAuthFilterSpec: Token validation, authentication setup
+
+7. Repository Tests (3 classes, 25+ cases)
+   - AppUserRepositorySpec: User CRUD database operations
+   - NoteRepositorySpec: Note CRUD database operations
+   - NoteRepositoryMultiUserSpec: NEW - User isolation tests (8 cases)
+
+8. Integration Tests (1 class, 8+ cases)
+   - FirstServerApiApplicationIntegrationSpec: Spring Boot context
+
+**Test Format:** All tests use **Given-When-Then** syntax for readability
+
+**Run Tests:** `mvn clean test` or on Windows `./mvnw.cmd clean test`
+
+---
+
+## Current Position - June 10, 2026
+
+### ✅ COMPLETED Features
+
+**Infrastructure & Deployment:**
+- ✅ Ubuntu 24.04 VPS with virtualgamer.co.uk domain
+- ✅ PostgreSQL in Docker
+- ✅ Nginx reverse proxy
+- ✅ Spring Boot API (Java 25)
+- ✅ React + Vite frontend deployed
+- ✅ GitHub Actions CI/CD for frontend
+
+**Authentication & Security:**
+- ✅ User registration (POST /auth/register)
+- ✅ User login with JWT (POST /auth/login)
+- ✅ BCrypt password hashing
+- ✅ JWT token generation & validation
+- ✅ JwtAuthFilter for request validation
+- ✅ SecurityConfig with proper CORS
+- ✅ OPTIONS preflight requests working
+
+**Notes API:**
+- ✅ GET /notes - Returns user's notes only
+- ✅ POST /notes - Creates note for authenticated user
+- ✅ GET /notes/{id} - Retrieves note (ownership verified)
+- ✅ PUT /notes/{id} - Updates note (ownership verified)
+- ✅ DELETE /notes/{id} - Deletes note (ownership verified)
+
+**Data Layer:**
+- ✅ DTO Pattern: AuthRequest, AuthResponse, AuthRegisterResponse, NoteDTO, AppUserDTO
+- ✅ Mapper Classes: NoteMapper, AppUserMapper
+- ✅ Entities: AppUserEntity, NoteEntity
+- ✅ Repositories: AppUserRepository, NoteRepository
+
+**Multi-User Ownership (PRIORITY 1 - COMPLETED):**
+- ✅ Notes associated with user (ManyToOne relationship)
+- ✅ User_id foreign key in notes table
+- ✅ findByUserId() - Get user's notes
+- ✅ findByIdAndUserId() - Verify ownership
+- ✅ NoteController extracts username from JWT
+- ✅ All endpoints filter by user ownership
+- ✅ Data isolation between users
+- ✅ Proper error handling for unauthorized access
+
+**Chat Messaging (IN PROGRESS):**
+- ✅ Initial domain foundation started with TDD
+- ✅ Group chat creation service slice passing
+- ✅ DTO and mapper pattern established for chat
+- ⏳ Controllers not yet implemented
+- ⏳ ChatMessageEntity not yet implemented
+- ⏳ ChatInviteEntity not yet implemented
+- ⏳ Database migration strategy not yet implemented
+- ⏳ WebSockets not yet implemented
+
+### 📊 Project Statistics
+
+| Category | Count | Status |
+|----------|-------|--------|
+| Test Classes | 21+ | In Progress |
+| Test Cases | 170+ | Passing |
+| Controllers | 3 | Existing complete |
+| Services | 2+ | Chat in progress |
+| Repositories | 4+ | Chat in progress |
+| DTOs | 6+ | Chat in progress |
+| Entities | 4+ | Chat in progress |
+| Mappers | 3+ | Chat in progress |
+| Security Classes | 2 | Complete |
+
+### Code Quality
+- ✅ DTO pattern implementation
+- ✅ Mapper layer for conversions
+- ✅ No exposed passwords in DTOs
+- ✅ Proper separation of concerns
+- ✅ Spring Security integration
+- ✅ JWT-based authentication
+- ✅ User ownership verification
+- ✅ TDD-first chat development started
+- ✅ Lombok adopted for reducing boilerplate
+
+---
+
+## Database Schema Update Required
+
+Run before deployment:
+
+```sql
+ALTER TABLE note_entity ADD COLUMN user_id BIGINT NOT NULL;
+ALTER TABLE note_entity ADD CONSTRAINT fk_note_user 
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+```
+
+Or use Flyway/Liquibase migration scripts.
+
+For chat, database migration strategy still needs to be decided before production deployment.
+
+---
+
+## Deployment Steps (Updated)
+
+```bash
+cd /opt/FirstServerAPI
+git fetch origin
+git reset --hard origin/master
+git clean -fd
+chmod +x mvnw
+./mvnw clean package -DskipTests
+# Run database migration (if needed)
+docker compose up -d --build
+```
+
+---
+
+## Next Priority Tasks
+
+**Priority 1: Continue WhatsApp-style Messaging**
+- Create CreateGroupChatRequest DTO
+- Create ChatController
+- Add POST /chats/groups endpoint
+- Add controller tests first
+- Add list-my-chats endpoint
+- Add ChatMessageEntity and message persistence
+- Add ChatInviteEntity and invitation workflow
+- Add leave group workflow
+- Add WebSockets/STOMP after REST and persistence are stable
+
+**Priority 2: Note Sharing**
+- Share notes with other users
+- Read-only/read-write permissions
+- Sharing table in database
+- Frontend sharing UI
+- Tests for shared access
+
+**Priority 3: Note Features**
+- Add timestamps (created, updated)
+- Add categories/tags
+- Add search functionality
+- Add sorting options
+
+**Priority 4: UI Enhancements**
+- Display note owner
+- Show timestamps
+- Note versioning
+- Better error messages
+
+---
+
+## Quick Reference - Files Modified
+
+### Core Notes Implementation
+- NoteEntity.java - Added user relationship (ManyToOne)
+- NoteRepository.java - Added findByUserId(), findByIdAndUserId()
+- NoteController.java - Multi-user filtering, ownership verification
+- NoteDTO.java - Added userId, username fields
+- NoteMapper.java - Updated to include user info
+
+### Chat Foundation Implementation
+- pom.xml - Added Lombok dependency and annotation processor configuration
+- ChatRoomType.java - Chat room type enum
+- ChatMemberRole.java - Chat member role enum
+- ChatMemberStatus.java - Chat member status enum
+- ChatInviteStatus.java - Planned invite status enum
+- ChatRoomEntity.java - Chat room JPA entity
+- ChatMemberEntity.java - Chat membership JPA entity
+- ChatRoomRepository.java - Chat room repository
+- ChatMemberRepository.java - Chat member repository
+- ChatRoomDTO.java - Chat room response DTO record
+- ChatRoomMapper.java - Entity-to-DTO mapper
+- ChatService.java - Initial group chat creation service
+- ChatServiceSpec.groovy - TDD service test for group chat creation
+
+### Testing
+- NoteControllerMultiUserSpec.groovy - 11 multi-user test cases
+- NoteRepositoryMultiUserSpec.groovy - 8 multi-user integration tests
+- ChatServiceSpec.groovy - Initial chat service TDD test
+
+### Documentation
+- PROJECT_CONTEXT.md - This file (continuously updated)
+- MULTIUSER_IMPLEMENTATION.md - Detailed implementation guide
+- TEST_DOCUMENTATION.md - Test suite guide
+- TESTS_SUMMARY.md - Test summary
+- TEST_QUICK_REFERENCE.txt - Quick reference
+
+---
+
+## Status
+
+✅ Existing notes functionality remains protected by passing tests
+✅ Authentication and JWT remain working
+✅ Initial chat architecture started
+✅ All local tests passed after first chat slice
+
+**Next Step:** In the next chat, read this file first, then continue with TDD for `POST /chats/groups` using DTOs, mapper, service and controller test coverage.
